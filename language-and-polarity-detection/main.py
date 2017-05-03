@@ -18,4 +18,5 @@ if __name__ == "__main__":
    for result in language_results:
       print('The language of the sentence is '+codes.ISO639_2[result]+'.')
       if(result == 'en'):
-         sentiment.sentiment(result, args['sdata'])
+         for result in sentiment.sentiment([sentence], args['sdata']):
+            print('The sentiment of the sentence is '+('positive.' if result=='pos' else 'negative.'))
