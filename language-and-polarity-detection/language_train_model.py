@@ -1,4 +1,5 @@
 import sys
+import pickle
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Perceptron
@@ -7,35 +8,31 @@ from sklearn.datasets import load_files
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 
+def get_language(sentences, languages_data_folder):
+   dataset = load_files(languages_data_folder)
 
-languages_data_folder = sys.argv[1]
-dataset = load_files(languages_data_folder)
+   docs_train, docs_test, y_train, y_test = train_test_split(
+      dataset.data, dataset.target, test_size=0.5)
 
-docs_train, docs_test, y_train, y_test = train_test_split(
-    dataset.data, dataset.target, test_size=0.5)
+   tfidf_vect = TfidfVectorizer(analyzer='char', ngram_range=(1,3))
+   clf = Pipeline([('vect', tfidf_vect), ('clf', Perceptron()),])
+   _ = clf.fit(dataset.data, dataset.target)
 
-tfidf_vect = TfidfVectorizer(analyzer='char', ngram_range=(1,3))
-clf = Pipeline([('vect', tfidf_vect), ('clf', Perceptron()),])
-_ = clf.fit(dataset.data, dataset.target)
+   y_predicted = clf.predict(docs_test)
+   
+   pickle_file = open("language_metrics.p", "wb")
+   pickle.dump(metrics.classification_report(y_test, y_predicted, target_names=dataset.target_names), pickle_file)
 
-y_predicted = clf.predict(docs_test)
+   cm = metrics.confusion_matrix(y_test, y_predicted)
+   pickle.dump(cm, pickle_file)
 
-print(metrics.classification_report(y_test, y_predicted,
-                                    target_names=dataset.target_names))
+   #import matplotlib.pyplot as plt
+   #plt.matshow(cm, cmap=plt.cm.jet)
+   #plt.show()
 
-cm = metrics.confusion_matrix(y_test, y_predicted)
-print(cm)
-
-import matplotlib.pyplot as plt
-plt.matshow(cm, cmap=plt.cm.jet)
-plt.show()
-
-sentences = [
-    u'This is a language detection test.',
-    u'Ceci est un test de d\xe9tection de la langue.',
-    u'Dies ist ein Test, um die Sprache zu erkennen.',
-]
-predicted = clf.predict(sentences)
-
-for s, p in zip(sentences, predicted):
-    print(u'The language of "%s" is "%s"' % (s, dataset.target_names[p]))
+   predicted = clf.predict(sentences)
+   
+   results = []
+   for s, p in zip(sentences, predicted):
+      results.append(dataset.target_names[p])
+   return results
